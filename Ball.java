@@ -15,6 +15,8 @@ public class Ball
 	private double size;				// The diameter of this Ball
 	private int layer;					// The layer of this ball is on.
 	private String colour;				// The colour of this Ball
+	private double xVelocity = 0;
+	private double yVelocity = 0;
 
 										// Permissable colours are:
 										// BLACK, BLUE, CYAN, DARKGREY, GREY,
@@ -160,5 +162,21 @@ public class Ball
 		double distance = Math.sqrt(dx*dx+dy*dy);
 
 		return distance < size/2 + b.size/2;
+	}
+
+	public void setXVelocity(double x){
+		xVelocity = x;
+	}
+	
+	public void setYVelocity(double y){
+		yVelocity = y;
+	}
+	
+	public double getXVelocity(){
+		return xVelocity;
+	}
+
+	public double getYVelocity(){
+		return yVelocity;
 	}
 }

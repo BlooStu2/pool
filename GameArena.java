@@ -45,6 +45,10 @@ public class GameArena extends JPanel implements Runnable, KeyListener, MouseLis
 	private Map<RenderingHints.Key, Object> renderingHints;
 	private boolean rendered = false;
 
+	private boolean movement = false;
+	private double decel = 0.25;
+
+
 	/**
 	 * Create a view of a GameArena.
 	 * 
@@ -714,5 +718,175 @@ public class GameArena extends JPanel implements Runnable, KeyListener, MouseLis
 	{
 		return mouseY;
 	}
+
+	public Ball[] simulate(Ball[] b, Ball[] p){
+		Ball[] potted = {null, null,null,null,null,null,null,null,null,null,null,null,null,null,null,null};
+		movement = true;
+		while(movement){
+			movement = false;
+			this.pause();
+			for(int i=0; i<16; i++){
+				if(b[i].getXVelocity()!=0){
+					movement = true;
+					if(b[i].getXPosition()+b[i].getXVelocity() <= 65){
+						b[i].setXPosition(65);
+						b[i].setXVelocity(b[i].getXVelocity()*-1);
+					}
+					else if(b[i].getXPosition()+b[i].getXVelocity() >= 1735){
+						b[i].setXPosition(1735);
+						b[i].setXVelocity(b[i].getXVelocity()*-1);
+					}
+					else{
+						b[i].setXPosition(b[i].getXPosition()+b[i].getXVelocity());
+					}
+					if(b[i].getXVelocity() > 0){
+						if(b[i].getXVelocity() < 1){
+							b[i].setXVelocity(0);
+						}
+						else{
+							b[i].setXVelocity(b[i].getXVelocity()-decel);
+						}
+					}
+					else{
+						if(b[i].getXVelocity() > -1){
+							b[i].setXVelocity(0);
+						}
+						else{
+							b[i].setXVelocity(b[i].getXVelocity()+decel);
+						}
+					}
+				}
+				if(b[i].getYVelocity()!=0){
+					movement = true;
+					if(b[i].getYPosition()+b[i].getYVelocity() <= 145){
+						b[i].setYPosition(145);
+						b[i].setYVelocity(b[i].getYVelocity()*-1);
+					}
+					else if(b[i].getYPosition()+b[i].getYVelocity() >= 915){
+						b[i].setYPosition(915);
+						b[i].setYVelocity(b[i].getYVelocity()*-1);
+					}
+					else{
+						b[i].setYPosition(b[i].getYPosition()+b[i].getYVelocity());
+					}
+					if(b[i].getYVelocity() > 0){
+						if(b[i].getYVelocity() < 1){
+							b[i].setYVelocity(0);
+						}
+						else{
+						b[i].setYVelocity(b[i].getYVelocity()-decel);
+						}
+					}
+					else{
+						if(b[i].getYVelocity() > -1){
+							b[i].setYVelocity(0);
+						}
+						else{
+						b[i].setYVelocity(b[i].getYVelocity()+decel);
+						}
+					}
+				}
+				for(int j=0; j<16; j++){
+					if(i!=j){
+						if(b[i].collides(b[j])){
+							if(b[i].getYVelocity()!=0 || b[i].getYVelocity()!=0 || b[j].getXVelocity()!=0 || b[j].getYVelocity()!=0){
+								double[] newvals = this.deflect(b[i],b[j]);
+								b[i].setXVelocity(newvals[0]);
+								b[i].setYVelocity(newvals[1]);
+								b[j].setXVelocity(newvals[2]);
+								b[j].setYVelocity(newvals[3]);
+							}
+						}
+					}
+				}
+				for(int j=0; j<6; j++){
+					if(b[i].collides(p[j])){
+						this.removeBall(b[i]);
+						for(int x=0; i<16; i++){
+							if(potted[i]==null){
+								potted[i]=b[i];
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+		for(int i=0; i<16; i++){
+			if(potted[i]!=null){
+				return potted;
+			}
+		}
+		return null;
+		
+	}
+	public double[] deflect(Ball b1, Ball b2){
+		double x1 = b1.getXPosition();
+		double x2 = b2.getXPosition();
+		double y1 = b1.getYPosition();
+		double y2 = b2.getYPosition();
+		double xvel1 = b1.getXVelocity();
+		double xvel2 = b2.getXVelocity();
+		double yvel1 = b1.getYVelocity();
+		double yvel2 = b2.getYVelocity();
+		// Calculate initial momentum of the balls... We assume unit mass here.
+		double p1InitialMomentum = Math.sqrt(xvel1 * xvel1 + yvel1 * yvel1);
+		double p2InitialMomentum = Math.sqrt(xvel2 * xvel2 + yvel2 * yvel2);
+		// calculate motion vectors
+		double[] p1Trajectory = {xvel1, yvel1};
+		double[] p2Trajectory = {xvel2, yvel2};
+		// Calculate Impact Vector
+		double[] impactVector = {x2 - x1, y2 - y1};
+		double[] impactVectorNorm = this.normalizeVector(impactVector);
+		// Calculate scalar product of each trajectory and impact vector
+		double p1dotImpact = Math.abs(p1Trajectory[0] * impactVectorNorm[0] + p1Trajectory[1] * impactVectorNorm[1]);
+		double p2dotImpact = Math.abs(p2Trajectory[0] * impactVectorNorm[0] + p2Trajectory[1] * impactVectorNorm[1]);
+		// Calculate the deflection vectors - the amount of energy transferred from one ball to the other in each axis
+		double[] p1Deflect = { -impactVectorNorm[0] * p2dotImpact, -impactVectorNorm[1] * p2dotImpact };
+		double[] p2Deflect = { impactVectorNorm[0] * p1dotImpact, impactVectorNorm[1] * p1dotImpact };
+		// Calculate the final trajectories
+		double[] p1FinalTrajectory = {p1Trajectory[0] + p1Deflect[0] - p2Deflect[0], p1Trajectory[1] + p1Deflect[1] - p2Deflect[1]};
+		double[] p2FinalTrajectory = {p2Trajectory[0] + p2Deflect[0] - p1Deflect[0], p2Trajectory[1] + p2Deflect[1] - p1Deflect[1]};
+		// Calculate the final energy in the system.
+		double p1FinalMomentum = Math.sqrt(p1FinalTrajectory[0] * p1FinalTrajectory[0] + p1FinalTrajectory[1] * p1FinalTrajectory[1]);
+		double p2FinalMomentum = Math.sqrt(p2FinalTrajectory[0] * p2FinalTrajectory[0] + p2FinalTrajectory[1] * p2FinalTrajectory[1]);
+		// Scale the resultant trajectories if we've accidentally broken the laws of physics.
+		double mag = 1.1*(p1InitialMomentum + p2InitialMomentum) / (p1FinalMomentum + p2FinalMomentum);
+		// Calculate the final x and y speed settings for the two balls after collision.
+		xvel1 = p1FinalTrajectory[0] * mag;
+		yvel1 = p1FinalTrajectory[1] * mag;
+		xvel2 = p2FinalTrajectory[0] * mag;
+		yvel2 = p2FinalTrajectory[1] * mag;
+		double[] result = {xvel1, yvel1, xvel2, yvel2};
+		return result;
+	}
 	
+	/**
+	* Converts a vector into a unit vector.
+	* Used by the deflect() method to calculate the resultnt direction after a collision.
+	*/
+	private double[] normalizeVector(double[] vec){
+		double mag = 0.0;
+		int dimensions = vec.length;
+
+		double[] result = new double[dimensions];
+
+		for (int i=0; i < dimensions; i++){
+			mag += vec[i] * vec[i];
+		}
+		mag = Math.sqrt(mag);
+		
+		if (mag == 0.0){
+			result[0] = 1.0;
+			for (int i=1; i < dimensions; i++){
+				result[i] = 0.0;
+			}
+		}
+		else{
+			for (int i=0; i < dimensions; i++){
+				result[i] = vec[i] / mag;
+			}
+		}
+		return result;
+	}
 }
