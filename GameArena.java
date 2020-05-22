@@ -47,6 +47,7 @@ public class GameArena extends JPanel implements Runnable, KeyListener, MouseLis
 
 	private boolean movement = false;
 	private double decel = 0.25;
+	private boolean collision = false;
 
 
 	/**
@@ -721,6 +722,7 @@ public class GameArena extends JPanel implements Runnable, KeyListener, MouseLis
 
 	public Ball[] simulate(Ball[] b, Ball[] p){
 		Ball[] potted = {null, null,null,null,null,null,null,null,null,null,null,null,null,null,null,null};
+		collision = false;
 		movement = true;
 		while(movement){
 			movement = false;
@@ -789,7 +791,12 @@ public class GameArena extends JPanel implements Runnable, KeyListener, MouseLis
 				for(int j=0; j<16; j++){
 					if(i!=j){
 						if(b[i].collides(b[j])){
+							if(i==0){
+								collision=true;
+							}
 							if(b[i].getYVelocity()!=0 || b[i].getYVelocity()!=0 || b[j].getXVelocity()!=0 || b[j].getYVelocity()!=0){
+								movement=true;
+								
 								double[] newvals = this.deflect(b[i],b[j]);
 								b[i].setXVelocity(newvals[0]);
 								b[i].setYVelocity(newvals[1]);
@@ -802,24 +809,29 @@ public class GameArena extends JPanel implements Runnable, KeyListener, MouseLis
 				for(int j=0; j<6; j++){
 					if(b[i].collides(p[j])){
 						this.removeBall(b[i]);
-						for(int x=0; i<16; i++){
-							if(potted[i]==null){
-								potted[i]=b[i];
+						for(int x=0; x<16; x++){
+							if(potted[x]==null && potted[x]!=b[i]){
+								potted[x]=b[i];
+								b[i].setXPosition(0);
+								b[i].setYPosition(0);
+								b[i].setXVelocity(0);
+								b[i].setYVelocity(0);
 								break;
+							}
+							else if(potted[x]==b[0]){
+								collision = true;
 							}
 						}
 					}
 				}
 			}
 		}
-		for(int i=0; i<16; i++){
-			if(potted[i]!=null){
-				return potted;
-			}
+		if(collision==false){
+			potted[15]=b[0];
 		}
-		return null;
-		
+		return potted;
 	}
+
 	public double[] deflect(Ball b1, Ball b2){
 		double x1 = b1.getXPosition();
 		double x2 = b2.getXPosition();

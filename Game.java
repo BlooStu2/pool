@@ -3,8 +3,15 @@ import java.lang.Math.*;
 public class Game{
 
     //initialize variables
+    private Line aimLine = new Line(0, 0, 0, 0, 3, "WHITE");
+    private boolean whiteBallpot = false;
+    private int redplayer = 0;
+    private Text currTurn = new Text("Player 1's Turn", 80, 608, 80, "WHITE");
+    private int score1 = 0;
+    private int score2 = 0;
+    private Text p1Score = new Text("0", 80, 20, 80, "WHITE");
+    private Text p2Score = new Text("0", 80, 1790, 80, "WHITE");
     private boolean player = true;
-    private int[] score = {0, 0};
     private Ball[] balls = new Ball[16];
     private Line startLine = new Line(370, 132, 370, 928, 3, "#327732");
     private GameArena mainArena = new GameArena(1860,980);
@@ -16,16 +23,20 @@ public class Game{
     double angle;
 
     public Game(){
+        //place info
+        mainArena.addText(p1Score);
+        mainArena.addText(p2Score);
+        mainArena.addText(currTurn);
 
         //construct board
         mainArena.addRectangle(board);
 
-        pot[0] = new Ball(50, 130, 70, "#000000");
-        pot[1] = new Ball(50, 930, 70, "#000000");
-        pot[2] = new Ball(1750, 930, 70, "#000000");
-        pot[3] = new Ball(1750, 130, 70, "#000000");
-        pot[4] = new Ball(900, 130, 50, "#000000");
-        pot[5] = new Ball(900, 930, 50, "#000000");
+        pot[0] = new Ball(50, 130, 80, "#000000");
+        pot[1] = new Ball(50, 930, 80, "#000000");
+        pot[2] = new Ball(1750, 930, 80, "#000000");
+        pot[3] = new Ball(1750, 130, 80, "#000000");
+        pot[4] = new Ball(900, 130, 60, "#000000");
+        pot[5] = new Ball(900, 930, 60, "#000000");
 
         for(int i=0; i<6; i++){
             mainArena.addBall(pot[i]);
@@ -70,20 +81,11 @@ public class Game{
         }
 
         //white ball placer
-        while(true){
-            mainArena.pause();
-            if(mainArena.leftMousePressed()){
-                try {Thread.sleep(50);}  //to stop left click carrying over
-                catch(Exception e) {};
-                if(!mainArena.leftMousePressed()){
-                    this.placeBall();
-                    break;
-                }
-            }
-        }
+        this.placeBall();
     }
 
     public void placeBall(){
+        mainArena.removeLine(poolCue);
         while(true){
             mainArena.pause();
             if((mainArena.getMousePositionX() > 65) && (mainArena.getMousePositionX() < 370) && (mainArena.getMousePositionY() > 145) && (mainArena.getMousePositionY() < 915)){
@@ -107,13 +109,15 @@ public class Game{
     }
 
     public void aimMode(){
+        mainArena.addLine(aimLine);
         mainArena.addLine(poolCue);
         while(true){
             angle = Math.atan((mainArena.getMousePositionY()-balls[0].getYPosition())/(mainArena.getMousePositionX()-balls[0].getXPosition()));
             if(mainArena.getMousePositionX()-balls[0].getXPosition() < 0){
-                angle+=135;
+                angle+=Math.toRadians(180);
             }
             mainArena.pause();
+            aimLine.setLinePosition(balls[0].getXPosition(), balls[0].getYPosition(), balls[0].getXPosition()+(1000*Math.cos(angle+Math.toRadians(180))), balls[0].getYPosition()+(1000*Math.sin(angle+Math.toRadians(180))));
             poolCue.setLinePosition(balls[0].getXPosition(), balls[0].getYPosition(), balls[0].getXPosition()+(400*Math.cos(angle)), balls[0].getYPosition()+(400*Math.sin(angle)));
             if(mainArena.leftMousePressed()){
                 try {Thread.sleep(500);} //to stop left click carrying over into the next function
@@ -135,6 +139,7 @@ public class Game{
     }
 
     public void fireball(double speed){
+        mainArena.removeLine(aimLine);
         speed /=15;
         System.out.println(speed);
         balls[0].setXVelocity(-speed*Math.cos(angle));
@@ -143,34 +148,115 @@ public class Game{
     }
 
     public void gameCheck(Ball[] pot){
-        if(pot == null){
-            //
-        }
-        else{
-            for(int i=0; i<16; i++){
-                if(pot[i] == null){
-                    break;
+        for(int i=0; i<16; i++){
+            if(pot[i] == null){
+                break;
+            }
+            else{
+                if(pot[i] == balls[0]){
+                    whiteBallpot = true;
                 }
-                else{
-                    if(pot[i] == balls[0]){
-                        this.placeBall();
+                else if(pot[i] == balls[1]){
+                    if(player){
+                        if(score1 == 7){
+                            this.gameOver(player);
+                        }
+                        else{
+                            this.gameOver(!player);
+                        }
                     }
-                    if(pot[i] == balls[1]){
-                        this.gameOver(!player);
+                    else{
+                        if(score2 == 7){
+                            this.gameOver(player);
+                        }
+                        else{
+                            this.gameOver(!player);
+                        }
+                    }
+                }
+                for(int j=2; j<9; j++){
+                    if(pot[i] == balls[j]){
+                        if(redplayer == 0){
+                            if(player){
+                                redplayer = 1;
+                                score1++;
+                                p1Score.setColour("RED");
+                                p2Score.setColour("YELLOW");
+                            }
+                            else{
+                                redplayer = 2;
+                                score2++;
+                                p1Score.setColour("YELLOW");
+                                p2Score.setColour("RED");
+                            }
+                        }
+                        else if(redplayer == 1){
+                            score1++;
+                        }
+                        else{
+                            score2++;
+                        }
+                    }
+                }
+                for(int j=9; j<16; j++){
+                    if(pot[i] == balls[j]){
+                        if(redplayer == 0){
+                            if(player){
+                                redplayer = 2;
+                                score1++;
+                                p1Score.setColour("YELLOW");
+                                p2Score.setColour("RED");
+                            }
+                            else{
+                                redplayer = 1;
+                                score2++;
+                                p2Score.setColour("YELLOW");
+                                p1Score.setColour("RED");
+                            }
+                        }
+                        else if(redplayer == 2){
+                            score1++;
+                        }
+                        else{
+                            score2++;
+                        }
                     }
                 }
             }
         }
+        this.changePlayer();
+    }
+
+    public void changePlayer(){
         player=!player;
-        this.aimMode();
+        if(player){
+            currTurn.setText("Player 1's Turn");
+        }
+        else{
+            currTurn.setText("Player 2's Turn");
+        }
+        p1Score.setText(Integer.toString(score1));
+        p2Score.setText(Integer.toString(score2));
+        if(whiteBallpot){
+            whiteBallpot = false;
+            balls[0].setXPosition(370);
+            balls[0].setYPosition(530);
+            mainArena.addBall(balls[0]);
+            this.placeBall();
+        }
+        else{
+            this.aimMode();
+        }
     }
 
     public void gameOver(boolean p){
-        if(p == false){
-            //player 2 wins
+        mainArena.pause();
+        if(p){
+            currTurn.setText("Player 1 Wins!");
         }
         else{
-            //player 1 wins
+            currTurn.setText("Player 2 Wins!");
         }
+        this.gameOver(p);
     }
 }
